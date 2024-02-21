@@ -70,9 +70,20 @@ ggplot(ucr.county, aes(x = murders, y = cleared, alpha = rate)) +
   geom_text_repel(label = ucr.county$county,  size= 1.0)
 
 
+# NEW CONTENT FROM 21 FEBRUARY 2024
+## Making a third scatterplot
+ucr.recent.subset <- subset(ucr.county.recent, ucr.county.recent$murders > 600)
 
-
-
+ggplot(ucr.recent.subset, aes(x = murders, y = cleared, alpha = rate, size = 2.0)) +
+  geom_point() + 
+  labs(
+    title = "My second scatterplot",
+    subtitle = "By: me",
+    caption = "Source: data source here",
+    alpha = "Clearance Rate"
+  ) +
+  theme_classic() +
+  geom_text_repel(label = ucr.recent.subset$county,  size= 1.0)
 
 
 
