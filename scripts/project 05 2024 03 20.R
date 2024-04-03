@@ -59,6 +59,10 @@ sex.age.hisp <- get_estimates(geography = "county",
                               breakdown = c("SEX", "AGEGROUP", "HISP"),  
                               breakdown_labels = TRUE)
 
+sex.age <- get_estimates(geography = "county", 
+                              product = "characteristics", 
+                              breakdown = c("SEX", "AGEGROUP"),  
+                              breakdown_labels = TRUE)
 # age groups by county
 county.age <- get_estimates(geography = "county",
                             product = "characteristics",
@@ -78,4 +82,7 @@ income.22 <- get_acs(geography = "metropolitan statistical area/micropolitan sta
                       variables = "B19019_001",
                       year = 2022)
 
-
+# Puerto Rican born population per MSA
+pop.pr <- get_acs(geography = "metropolitan statistical area/micropolitan statistical area",
+                      variables = "B05001_003",
+                      year = 2022)
