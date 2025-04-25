@@ -1,0 +1,141 @@
+---
+title: "JLC 245 Final Project Template"
+author: "Your Name"
+date: "`r format(Sys.time(), '%d %B %Y')`"
+output: html_document
+---
+
+# LIBRARIES
+
+```{r, warning=FALSE, message=FALSE}
+library(cluster)
+library(tidyverse)
+library(ggpubr)
+library(ggrepel)
+```
+
+
+# DATA
+
+### Build your data
+```{r, warning=FALSE, message=FALSE}
+# probably want to hide this chunk with echo=FALSE
+
+data.rankings = data.frame("City" = c(
+  "Washington DC",
+  "Baltimore MD",
+  "Miami FL",
+  "Atlanta GA",
+  "Philly PA",
+  "New York City",
+  "Newark NJ",
+  "Phoenix AZ",
+  "Los Angeles CA",
+  "El Paso TX",
+  "Seattle WA",
+  "San Francisco",
+  "Cleveland OH",
+  "Detroit MI",
+  "Memphis TN"
+))
+```
+
+### Build your rankings
+```{r, warning=FALSE, message=FALSE}
+# probably want to hide this chunk with echo=FALSE
+
+# the max ranking would be 700, but realistically anything higher than 100 is aggressive
+data.rankings$project2 <- c(0,1,2,3,4,5,20,15,15,50,10,10,25,25,25)
+
+# the max ranking would be 900, but realistically anything higher than 100 is aggressive
+data.rankings$project3 <- c(0,50,5,50,2,50,50,3,1,4,50,50,50,50,50)
+
+# the max ranking would be 34
+data.rankings$project4 <- c(0,30,25,20,15,10,5,4,3,2,1,12,18,28,34)
+
+# the max ranking would be 34
+data.rankings$project5 <- c(0,3,25,20,15,10,5,34,30,2,12,1,18,28,4)
+```
+
+### Clean your data
+```{r}
+# probably want to hide this chunk with echo=FALSE
+
+# move row names, keep only numeric fields
+row.names(data.rankings) <- data.rankings$City
+data.rankings <- data.rankings[2:5]
+```
+
+### view your table
+```{r}
+# probably want to hide this chunk with echo=FALSE
+print(data.rankings)
+```
+
+### or a cleaner table
+```{r}
+# probably want to hide this chunk with echo=FALSE
+knitr::kable(data.rankings)
+```
+
+# MULTI-DIMENSIONAL SCALING
+```{r, warning=FALSE, message=FALSE}
+# probably want to hide this chunk with echo=FALSE
+
+# calculate MDS
+mds.city <- cmdscale(dist(data.rankings))
+
+# create an empty plot
+plot(mds.city[, 1], mds.city[, 2], 
+     type = "n", xlab = "MDS Dimension 1", 
+     ylab = "MDS Dimension 2")
+
+# add points
+points(mds.city[, 1], mds.city[, 2], 
+       pch = 21, bg = "lightblue")
+text(mds.city[, 1], mds.city[, 2], 
+     labels = row.names(data.rankings), 
+     pos = 3, cex = 0.8)
+```
+
+# K MEANS CLUSTERING
+```{r, warning=FALSE, message=FALSE}
+# probably want to hide this chunk with echo=FALSE
+
+clusters <- kmeans(mds.city, centers = 5)$cluster
+
+# create an empty plot
+plot(mds.city[, 1], mds.city[, 2], 
+     type = "n", xlab = "MDS Dimension 1", 
+     ylab = "MDS Dimension 2")
+
+text(mds.city[, 1], mds.city[, 2], 
+     labels = row.names(data.rankings), 
+     pos = 3, cex = 0.8)
+
+# add clusters to plot
+points(mds.city[, 1], mds.city[, 2], 
+       pch = 21, bg = clusters, cex = 1.2)
+
+# updates data table
+mds.df <- as.data.frame(mds.city)
+mds.df$groups <- as.factor(clusters)
+mds.df$city <- row.names(data.rankings) 
+
+# VISUAL
+
+# probably want to hide this chunk with echo=FALSE
+
+# update plot with clusters
+ggscatter(mds.df, x = "V1", y = "V2",
+          color = "groups",
+          palette = "jco",
+          size = 3,
+          ellipse = TRUE,
+          ellipse.type = "convex",
+          title = "K-means Clustering of MDS Cities Data",
+          xlab = "MDS Dimension 1",
+          ylab = "MDS Dimension 2") +
+  geom_text_repel(aes(label = city), box.padding = 0.5)
+```
+
