@@ -1,9 +1,12 @@
 # Step 0
+install.packages('fmsb')
 library(tidyverse)
+library(fmsb)
+library(scales)
 
 # Step 1
-setwd("C:/Users/danna/Downloads") # for windows
-setwd("/Users/matthewdanna/Downloads/hate_crime/hate_crime") # for a Mac
+setwd("C:/Users/xxx/Downloads") # for windows
+setwd("/Users/xxx/Downloads/hate_crime/hate_crime") # for a Mac
 hate <- read.csv("hate_crime.csv", stringsAsFactors = FALSE)
 
 # Step 4
@@ -101,8 +104,6 @@ offender.white$abs.diff <- abs(offender.white$diff)
 offender.white <- offender.white[order(offender.white$abs.diff),]
 offender.white$rank.off.w <- seq.int(nrow(offender.white)) -1
 
-offender.race <- rbind(offender.black, offender.white)
-
 # Step 7 - LOCATION
 sum.location <- hate.similar %>% 
   group_by(city.state, location_name) %>% 
@@ -120,8 +121,6 @@ loc.home$diff <- loc.home$pct - loc.home$pct[35]
 loc.home$abs.diff <- abs(loc.home$diff)
 loc.home <- loc.home[order(loc.home$abs.diff),]
 loc.home$rank.home <- seq.int(nrow(loc.home)) - 1
-
-location <- rbind(loc.highway, loc.home)
 
 # BIAS
 sum.bias <- hate.similar %>%
@@ -196,15 +195,19 @@ rankings.combined <- rankings.combined %>%
   mutate(rank.total = rowSums(across(starts_with("rank.")), na.rm = TRUE)) %>%
   arrange(rank.total)
 
-# radar chart
-library(fmsb)
-library(scales)
-
+# RADAR CHART
 # Select DC and top x most similar cities (lowest total_rank)
+# 1 of 2 ways to filter data for your graph
 radar.data <- rankings.combined %>%
   arrange(rank.total) %>%
-  slice(1:4) %>%
+  slice(1:2) %>%
   select(city.state, starts_with("rank."))
+
+# 2 of 2 ways to filter data for your graph
+radar.data <- subset(rankings.combined, 
+                     rankings.combined$city.state == 'Washington DC' |
+                       rankings.combined$city.state == 'Chicago IL' |
+                       rankings.combined$city.state == 'El Paso TX')
 
 # Prepare data for fmsb (it needs max/min rows at top)
 radar.ready <- radar.data %>%
@@ -236,9 +239,8 @@ legend(
   col = c("red", "blue", "green", "purple", "orange","grey"),
   lty = 1,
   bty = "n",
-  cex = 0.75
+  cex = 0.5
 )
-
 
 # Bar graph
 ggplot(rankings.combined,
@@ -252,3 +254,105 @@ ggplot(rankings.combined,
        y = "Total Similarity Rank (lower = more similar)") +
   theme_minimal(base_size = 14) +
   theme(legend.position = "none")
+
+#### BRING IN PROJECT 2 HERE 
+# this is only an example, and only has 2 of the 4 datasets required
+data.rankings = data.frame(
+  "City" = c(
+    "Austin TX",
+    "Baltimore MD",
+    "Boston MA",
+    "Charlotte NC",
+    "Chicago IL",
+    "Cleveland OH",
+    "Columbus OH",
+    "Dallas TX",
+    "Denver CO",
+    "Detroit MI",
+    "El Paso TX",
+    "Houston TX",
+    "Indianapolis IN",
+    "Kansas City MO",
+    "Las Vegas NV",
+    "Long Beach CA",
+    "Los Angeles CA",
+    "Louisville KY",
+    "Memphis TN",
+    "Milwaukee WI",
+    "Minneapolis MN",
+    "Nashville TN",
+    "New York City NY",
+    "Oakland CA",
+    "Oklahoma City OK",
+    "Philadelphia PA",
+    "Phoenix AZ",
+    "Portland OR",
+    "San Antonio TX",
+    "San Diego CA",
+    "San Francisco CA",
+    "San Jose CA",
+    "Seattle WA",
+    "Tucson AZ",
+    "Washington DC"
+  )
+)
+
+##### FIRST METRIC (Firearm Death Rate)
+# Default all cities to 30
+data.rankings$firearm.deaths = 30  
+
+# Assign custom values
+# these are based on manually determining similarity
+data.rankings$firearm.deaths[data.rankings$City == "Indianapolis IN"] <- 2
+data.rankings$firearm.deaths[data.rankings$City == "Philadelphia PA"] <- 3
+data.rankings$firearm.deaths[data.rankings$City == "Louisville KY"]   <- 4
+data.rankings$firearm.deaths[data.rankings$City == "Tucson AZ"]       <- 6
+data.rankings$firearm.deaths[data.rankings$City == "Houston TX"]      <- 1
+data.rankings$firearm.deaths[data.rankings$City == "Chicago IL"]      <- 5
+
+# Assign 10s
+# these are not the most similar, but the next tier
+ten_cities <- c("Memphis TN", "Detroit MI", "Cleveland OH", 
+                "Milwaukee WI", "Baltimore MD", "Kansas City MO")
+data.rankings$firearm.deaths[data.rankings$City %in% ten_cities] <- 10
+
+# Assign Washington DC = 0
+# DC gets assigned a 0 for every dataset
+data.rankings$firearm.deaths[data.rankings$City == "Washington DC"] <- 0
+
+##### SECOND METRIC
+# BUCKET C
+# Default all cities to 30
+data.rankings$diabetes.deaths = 30  
+
+# BUCKET A
+# Assign custom values
+# these are based on manually determining similarity
+data.rankings$diabetes.deaths[data.rankings$City == "Seattle WA"] <- 1
+data.rankings$diabetes.deaths[data.rankings$City == "New York City NY"] <- 2
+data.rankings$diabetes.deaths[data.rankings$City == "Austin TX"]   <- 3
+data.rankings$diabetes.deaths[data.rankings$City == "Kansas City MO"] <- 4
+data.rankings$diabetes.deaths[data.rankings$City == "Columbus OH"]      <- 5
+data.rankings$diabetes.deaths[data.rankings$City == "Boston MA"]      <- 6
+data.rankings$diabetes.deaths[data.rankings$City == "San Francisco CA"] <- 7
+
+# BUCKET B
+# Assign 10s
+# these are not the most similar, but the next tier
+ten_cities <- c("Chicago IL", "Philadelphia PA", "Louisville KY", "Minneapolis MN",
+                "San Diego CA", "Denver CO", "Las Vegas NV", "Oakland CA", "Charlotte NC",
+                "San Jose CA", "Dallas TX")
+data.rankings$diabetes.deaths[data.rankings$City %in% ten_cities] <- 10
+
+# Assign Washington DC = 0
+data.rankings$diabetes.deaths[data.rankings$City == "Washington DC"] <- 0
+
+#### rename the city column in Project
+names(data.rankings) <- c("city.state", "proj2.firearm", "proj2.diabetes", 
+                          "proj2.xxx", "proj2.yyy")
+
+### join project 2 and project 3 datasets
+final.data <- data.rankings %>%
+  left_join(rankings.combined)
+
+final.data <- final.data[c(1:13)]
