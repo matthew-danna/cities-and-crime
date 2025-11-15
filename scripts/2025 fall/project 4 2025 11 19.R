@@ -46,7 +46,7 @@ drug.usage$total <- drug.usage$Marijuana + drug.usage$Cocaine +
 drug.usage.similar <- drug.usage %>% filter(State %in% city.filter)
 
 # DRUG OVERDOSE
-drug.overdose <- read.csv("C:/Users/danna/Downloads/final.overdoses.csv",
+drug.overdose <- read.csv("https://raw.githubusercontent.com/matthew-danna/cities-and-crime/refs/heads/main/data/final.overdoses.csv",
                           stringsAsFactors = FALSE)
 drug.overdose <- drug.overdose[c(2:6)]
 
