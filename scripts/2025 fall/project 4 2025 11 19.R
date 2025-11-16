@@ -1,5 +1,14 @@
+# Step 0: PACKAGES
+### run once
+devtools::install_github("ricardo-bion/ggradar", dependencies = TRUE)
+
+### run everytime
+library(scales)
+library(ggradar)
 library(tidyverse)
 
+# Step 1: DATA PREP
+### the master list of cities
 city.filter <- c("Austin TX",
                  "Baltimore MD",
                  "Boston MA",
@@ -36,32 +45,45 @@ city.filter <- c("Austin TX",
                  "Tucson AZ",
                  "Washington DC")
 
-# DRUG USAGE DATA
-### read in drug usage CSV
+# Step 3: DRUG USAGE DATA
+### read in American Addiction Center data
 drug.usage <- read.csv("https://raw.githubusercontent.com/matthew-danna/cities-and-crime/refs/heads/main/data/american_addicition_centers.csv", 
                        stringsAsFactors = FALSE)
+
+### select columns
 drug.usage <- drug.usage[c(1:5,8:15)]
+
+### calculate totals
 drug.usage$total <- drug.usage$Marijuana + drug.usage$Cocaine +
   drug.usage$Heroin + drug.usage$Meth
 
+### filter to master city list
 drug.usage.similar <- drug.usage %>% filter(State %in% city.filter)
 
+### rename columns
 names(drug.usage.similar) <- c("city.state",  "use.marijuana", "use.cocaine", "use.heroin", "use.meth", 
                                "use.diff.marijuana", "use.diff.cocaine", "use.diff.heroin", "use.diff.meth", 
                                "use.rank.marijuana", "use.rank.cocaine", "use.rank.heroin", "use.rank.meth", "use.total")
 
+### restructure table
 drug.usage.similar <- drug.usage.similar[c(1,14,2,6,10,3,7,11,4,8,12,5,9,13)]
 
-# DRUG OVERDOSE
+# Step 4: DRUG OVERDOSE DATA
+### read in CDC data
 drug.overdose <- read.csv("https://raw.githubusercontent.com/matthew-danna/cities-and-crime/refs/heads/main/data/final.overdoses.csv",
                           stringsAsFactors = FALSE)
+
+### select columns
 drug.overdose <- drug.overdose[c(2:6)]
 
+### rename columns
 names(drug.overdose) <- c("county", "county.code", "description",
                           "description.code", "overdoses")
 
+### format field as a character to avoid math
 drug.overdose$description.code <- as.character(drug.overdose$description.code)
 
+### restructure table so each unique drug value is a column, not a row
 drug.overdose.category <- drug.overdose %>%
   filter(!is.na(description.code) & description.code != "") %>%
   group_by(county, county.code, description.code) %>%
@@ -72,6 +94,8 @@ drug.overdose.category <- drug.overdose %>%
     values_fill = list(overdoses = 0)
   )
 
+### build a look-up table to maps counties to cities
+### this ain't perfect but good enough
 city.county <- tribble(
   ~city,                 ~county.code,
   "Austin TX",           48453,   # Travis County  [oai_citation:0‡U.S. Office of Personnel Management](https://www.opm.gov/policy-data-oversight/pay-leave/salaries-wages/2024/locality-pay-area-definitions/?utm_source=chatgpt.com)  
@@ -124,37 +148,41 @@ city.county <- tribble(
   "Washington DC",       11001    # District of Columbia (equivalent to county)  [oai_citation:11‡HMDB](https://www.hmdb.org/countyoverlay/countyseatlist.asp?utm_source=chatgpt.com)  
 )
 
+### append city name to relevant counties
 drug.od <- drug.overdose.category %>%
   right_join(city.county.lookup)
 
+### rename columns
+### this is TEDIOUS and not perfect - but it transforms OD codes to usable categories
 names(drug.od) <- c("county", "county.code", 
                     "tobacco", "undetermined1", "psychoactive1", "antiepileptic1", "hallucinogens1", "undetermined2",
                     "multiple1", "hallucinogens2", "opioids1", "opioids2", "sedatives1", "cocaine1", "stimulants1", 
                     "stimulants2", "solvents", "antiepileptic2", "antiepileptic3", "hallucinogens3", "multiple2", 
                     "cannabinoids1", "cocaine2", "multiple3", "assault" ,"psychoactive2", "opioids3", "cocaine3", 
-                    "analgesics1", "cannabinoids2", "sedatives2", "analgesics2", "pyschoactive3", "stimulants3", 
+                    "analgesics1", "cannabinoids2", "sedatives2", "analgesics2", "psychoactive3", "stimulants3", 
                     "opioids4", "analgesics3",
                     "city")
 
+### calculate totals across similar columns
 drug.od$undetermined <- drug.od$undetermined1 + drug.od$undetermined2
-drug.od$psychoactive <- drug.od$psychoactive1 + drug.od$psychoactive2 + drug.od$pyschoactive3
+drug.od$psychoactive <- drug.od$psychoactive1 + drug.od$psychoactive2 + drug.od$psychoactive3
 drug.od$antiepileptic <- drug.od$antiepileptic1 + drug.od$antiepileptic2 + drug.od$antiepileptic3
 drug.od$hallucinogens <- drug.od$hallucinogens1 + drug.od$hallucinogens2 + drug.od$hallucinogens3
 drug.od$multiple <- drug.od$multiple1 + drug.od$multiple2 + drug.od$multiple3
-drug.od$opioids <- drug.od$opioids1 + drug.od$multiple2 + drug.od$multiple3
+drug.od$opioids <- drug.od$opioids1 + drug.od$opioids2 + drug.od$opioids3 + drug.od$opioids4
 drug.od$sedatives <- drug.od$sedatives1 + drug.od$sedatives2
 drug.od$cocaine <- drug.od$cocaine1 + drug.od$cocaine2 + drug.od$cocaine3
 drug.od$stimulants <- drug.od$stimulants1 + drug.od$stimulants2 + drug.od$stimulants3
 drug.od$cannabinoids <- drug.od$cannabinoids1 + drug.od$cannabinoids2
-drug.od$analgesics <- drug.od$analgesics1 + drug.od$analgesics2 + drug.od$analgesics3
+drug.od$painkillers <- drug.od$analgesics1 + drug.od$analgesics2 + drug.od$analgesics3
 
 overdoses <- drug.od[c(37,1,3,17,25,38:48)]
 
 names(overdoses) <- c("city.state", "county", "od.tobacco", "od.solvents", "od.assault", "od.undetermined", 
                       "od.psychoactive", "od.antiepileptic", "od.hallucinogens", "od.multiple", "od.opioids",
-                      "od.sedatives", "od.cocaine", "od.stimulants", "od.cannabinoids", "od.analgesics")
+                      "od.sedatives", "od.cocaine", "od.stimulants", "od.cannabinoids", "od.painkillers")
 
-# Collapse all county rows into one row per city
+### collapse all county rows into one row per city
 city.overdoses <- overdoses %>%
   group_by(city.state) %>%
   summarise(across(
@@ -163,15 +191,48 @@ city.overdoses <- overdoses %>%
   )) %>%
   ungroup()
 
-# rank
+### rank
 city.overdoses$od.diff.tobacco <- abs(city.overdoses$od.tobacco - city.overdoses$od.tobacco[35])
 city.overdoses <- city.overdoses[order(city.overdoses$od.diff.tobacco),]
 city.overdoses$od.rank.tobacco <- seq.int(nrow(city.overdoses)) -1
 
-# COMBINE
+# MORE?
+
+### Step 5: JOIN
+### combine drug datas
 drugs <- city.overdoses %>%
   left_join(drug.usage.similar)
 
+# Step 6: VISUALS
+### select and scale all relevant columns
+radar.data <- drugs %>%
+  select(city.state,
+         use.marijuana,
+         use.cocaine,
+         use.heroin,
+         use.meth,
+         od.opioids,
+         od.cocaine,
+         od.stimulants,
+         od.painkillers) %>%
+  # Scale each variable 0–1 across all cities
+  mutate(across(-city.state, ~ rescale(.x, to = c(0, 1), na.rm = TRUE)))
+
+### make a function a radar plot for one city
+plot_city_radar <- function(city_name) {
+  df <- radar.data %>% filter(city.state == city_name)
+  ggradar(df,
+          grid.min = 0,
+          grid.mid = 0.5,
+          grid.max = 1,
+          group.line.width = 1,
+          group.point.size = 2,
+          background.circle.colour = "grey90",
+          plot.title = city_name)
+}
+
+### choose a city, get a plot
+plot_city_radar("New York City NY")
 
 
 
