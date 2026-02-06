@@ -1,0 +1,91 @@
+---
+title: "JLC 245 Project 1 Template"
+author: "My Name"
+date: "`r format(Sys.time(), '%d %B %Y')`"
+output: html_document
+---
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, error=FALSE}
+library(tidyverse)
+library(explore)
+library(GGally)
+
+# Step 1: examine data online
+
+# Step 2
+url <- "https://opendata.dc.gov/datasets/DCGIS::crime-incidents-in-"
+years <- c(2008:2026)
+full.urls <- paste0(url, years, ".csv")
+dc.data <- data.frame()
+
+for(file in full.urls) {
+  tmp.data <- read.csv(file, stringsAsFactors = FALSE)
+  dc.data <- rbind(tmp.data, dc.data)
+}
+
+# Step 3
+dc.data <- separate(dc.data, REPORT_DAT, into = c("date", "time"), sep = " ")
+
+# Step 4
+dc.data$date <- as.Date(dc.data$date, format = "%Y/%m/%d")
+dc.data$hour <- substr(dc.data$time, 0, 2)
+dc.data$hour <- as.numeric(dc.data$hour)
+dc.data$dow <- weekdays(dc.data$date)
+dc.data$week <- format(dc.data$date, "%U")
+dc.data$week <- as.numeric(dc.data$week) 
+dc.data$months <- months(dc.data$date)
+dc.data$month <- month(dc.data$date)
+dc.data$year <- substr(dc.data$date, 0, 4)
+
+dc.data$TYPE <- case_when(
+  dc.data$OFFENSE %in%
+    c(
+      "ARSON",
+      "BURGLARY",
+      "MOTOR VEHICLE THEFT",
+      "THEFT F/AUTO",
+      "THEFT/OTHER") ~ "Property",
+  dc.data$OFFENSE %in%
+    c("ASSAULT W/DANGEROUS WEAPON", "HOMICIDE", 
+      "ROBBERY", "SEX ABUSE")
+  ~ "Person")
+```
+
+# Finding 1
+Type my analysis about crime types here
+
+### Visual 1
+```{r, echo=FALSE, message=FALSE, warning=FALSE, error=FALSE}
+dc.data %>% filter(TYPE == "Person") %>%
+  ggplot() +
+  geom_bar(aes(x = OFFENSE, fill = METHOD), position = "fill") +
+  labs(title = "DC Persons Crimes by Method \n20xx - 2026 YTD", x = "Crime", y = "Proportion of Crime", fill = "Method") +
+  theme(plot.title = element_text(hjust = 0.5, size = 14),
+        axis.text.x = element_text(color = "black", size = 10),
+        axis.text.y = element_text(color = "black", size = 10),
+        axis.ticks.y = element_blank(),
+        panel.grid.major.x = element_blank(),
+        panel.grid.major.y = element_line(color = "gray"),
+        panel.background = element_blank()) +
+  scale_x_discrete(labels = c("Assault", "Homicide", "Robbery", "Sex Abuse")) +
+  scale_y_continuous(labels = c("0%", "25%", "50%", "75%", "100%")) +
+  scale_fill_manual(values = c("#1b9e77", "#d95f02","#7570b3"), labels = c("Gun", "Knife", "Other"))
+```
+
+
+# Finding 2
+Type my analysis about locations here.
+
+### Visual 2
+```{r}
+
+```
+
+# Finding 3
+Type my analysis about time here!
+
+### Visual 3
+```{r}
+
+```
+
